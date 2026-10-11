@@ -19,7 +19,8 @@ import android.widget.TextView
  */
 class LockOverlay(
     private val context: Context,
-    private val onEmergency: () -> Unit,
+    private val onPhone: () -> Unit,
+    private val onMaps: () -> Unit,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private var root: View? = null
@@ -86,10 +87,33 @@ class LockOverlay(
         }
         countdown = cd
         content.addView(cd)
-        content.addView(Button(context).apply {
-            text = "緊急通報（電話を開く）"
-            setOnClickListener { onEmergency() }
+        content.addView(TextView(context).apply {
+            text = "ロック中も使えるのは電話とマップだけです"
+            textSize = 13f
+            setTextColor(Color.parseColor("#99FFFFFF"))
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, (8 * dp).toInt())
         })
+        val buttons = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val buttonParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            marginStart = (4 * dp).toInt()
+            marginEnd = (4 * dp).toInt()
+        }
+        buttons.addView(Button(context).apply {
+            text = "電話（緊急通報）"
+            setOnClickListener { onPhone() }
+        }, buttonParams)
+        buttons.addView(Button(context).apply {
+            text = "マップ"
+            setOnClickListener { onMaps() }
+        }, LinearLayout.LayoutParams(buttonParams))
+        content.addView(buttons, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ))
 
         return FrameLayout(context).apply {
             setBackgroundColor(Color.parseColor("#FF101418"))

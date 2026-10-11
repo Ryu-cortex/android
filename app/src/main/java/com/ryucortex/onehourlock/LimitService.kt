@@ -31,7 +31,8 @@ class LimitService : Service() {
         private const val NOTIFICATION_ID = 1
         private const val WARNING_NOTIFICATION_ID = 2
         private const val WARNING_BEFORE_MS = 5L * 60L * 1000L
-        private const val EMERGENCY_GRACE_MS = 60L * 1000L
+        /** 電話・マップを開いてから、そのアプリが前面に来るまで待つ時間 */
+        private const val LAUNCH_GRACE_MS = 5_000L
         private const val MAX_POLL_MS = 15_000L
         private const val LOCKED_POLL_MS = 1_000L
 
@@ -43,10 +44,14 @@ class LimitService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val tickRunnable = Runnable { tick() }
     private lateinit var overlay: LockOverlay
+    private lateinit var allowedApps: AllowedApps
 
     /** ロック中の日（0:00 のミリ秒）。ロック中は日付が変わるまで使用時間を再計算しない */
     private var lockedDayStart: Long? = null
-    private var emergencyUntil = 0L
+
+    /** ロック中に電話・マップを開いた時刻。null なら許可セッション外 */
+    private var allowedSessionStartedAt: Long? = null
+    private var allowedPackages: Set<String> = emptySet()
     private var warnedDayStart: Long? = null
 
     private val systemReceiver = object : BroadcastReceiver() {
@@ -76,7 +81,12 @@ class LimitService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        overlay = LockOverlay(this) { onEmergencyPressed() }
+        allowedApps = AllowedApps(this)
+        overlay = LockOverlay(
+            this,
+            onPhone = { openAllowedApp(allowedApps.dialIntent()) },
+            onMaps = { openAllowedApp(allowedApps.mapsIntent()) },
+        )
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
@@ -147,10 +157,22 @@ class LimitService : Service() {
     }
 
     private fun enforceLock(now: Long) {
-        // 通話中・着信中・緊急発信の猶予中はロック画面を外す
-        if (isInPhoneCall() || now < emergencyUntil) {
+        // 通話中・着信中はロック画面を外す
+        if (isInPhoneCall()) {
             overlay.hide()
             return
+        }
+        // 電話・マップを使っている間だけロック画面を外す。それ以外のアプリに移ったら即ロック
+        allowedSessionStartedAt?.let { startedAt ->
+            val (pkg, resumedAt) = allowedApps.foreground(now)
+            val switchedAway = pkg != null && pkg !in allowedPackages &&
+                (resumedAt >= startedAt || now - startedAt > LAUNCH_GRACE_MS)
+            val launched = now - startedAt <= LAUNCH_GRACE_MS || (pkg != null && pkg in allowedPackages)
+            if (!switchedAway && launched) {
+                overlay.hide()
+                return
+            }
+            allowedSessionStartedAt = null
         }
         if (Settings.canDrawOverlays(this)) {
             overlay.show(UsageTracker.startOfTomorrow(now) - now)
@@ -162,11 +184,15 @@ class LimitService : Service() {
         }
     }
 
-    private fun onEmergencyPressed() {
-        emergencyUntil = System.currentTimeMillis() + EMERGENCY_GRACE_MS
+    private fun openAllowedApp(intent: Intent) {
+        val now = System.currentTimeMillis()
+        allowedPackages = allowedApps.packages()
+        allowedApps.foreground(now)
+        allowedSessionStartedAt = now
         overlay.hide()
-        val dial = Intent(Intent.ACTION_DIAL).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { startActivity(dial) }
+        if (runCatching { startActivity(intent) }.isFailure) {
+            allowedSessionStartedAt = null
+        }
         scheduleTick(LOCKED_POLL_MS)
     }
 
