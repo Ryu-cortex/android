@@ -9,12 +9,13 @@ import android.net.Uri
 import android.telecom.TelecomManager
 
 /**
- * ロック中でも使ってよいアプリ（電話・マップ）の判定と、前面アプリの検出。
+ * ロック中でも使ってよいアプリ（電話・マップ・Spotify）の判定と、前面アプリの検出。
  */
 class AllowedApps(private val context: Context) {
 
     companion object {
         const val GOOGLE_MAPS = "com.google.android.apps.maps"
+        const val SPOTIFY = "com.spotify.music"
 
         /** アプリ起動時や権限ダイアログなどで一瞬前面に出るシステム画面 */
         private val SYSTEM_HELPERS = setOf(
@@ -34,11 +35,12 @@ class AllowedApps(private val context: Context) {
     private var lastForegroundAt = 0L
     private var queriedUntil = 0L
 
-    /** 電話アプリ・マップアプリ・システム補助画面のパッケージ一覧 */
+    /** 電話アプリ・マップアプリ・Spotify・システム補助画面のパッケージ一覧 */
     fun packages(): Set<String> {
         val result = mutableSetOf<String>()
         result += SYSTEM_HELPERS
         result += GOOGLE_MAPS
+        result += SPOTIFY
         context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage?.let { result += it }
         result += handlersOf(Intent(Intent.ACTION_DIAL, Uri.parse("tel:")))
         result += handlersOf(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=")))
@@ -52,6 +54,10 @@ class AllowedApps(private val context: Context) {
         (pm.getLaunchIntentForPackage(GOOGLE_MAPS)
             ?: Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=")))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** Spotify が入っていなければ null */
+    fun spotifyIntent(): Intent? =
+        pm.getLaunchIntentForPackage(SPOTIFY)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /**
      * 直近で前面に来たアプリのパッケージ名と、その時刻を返す。

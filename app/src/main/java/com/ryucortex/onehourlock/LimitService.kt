@@ -86,6 +86,8 @@ class LimitService : Service() {
             this,
             onPhone = { openAllowedApp(allowedApps.dialIntent()) },
             onMaps = { openAllowedApp(allowedApps.mapsIntent()) },
+            spotifyAvailable = { allowedApps.spotifyIntent() != null },
+            onSpotify = { allowedApps.spotifyIntent()?.let { openAllowedApp(it) } },
         )
 
         val filter = IntentFilter().apply {
@@ -162,7 +164,7 @@ class LimitService : Service() {
             overlay.hide()
             return
         }
-        // 電話・マップを使っている間だけロック画面を外す。それ以外のアプリに移ったら即ロック
+        // 電話・マップ・Spotify を使っている間だけロック画面を外す。それ以外のアプリに移ったら即ロック
         allowedSessionStartedAt?.let { startedAt ->
             val (pkg, resumedAt) = allowedApps.foreground(now)
             val switchedAway = pkg != null && pkg !in allowedPackages &&
