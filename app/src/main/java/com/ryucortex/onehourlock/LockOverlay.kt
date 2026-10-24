@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
@@ -12,6 +13,7 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 /**
@@ -23,6 +25,9 @@ class LockOverlay(
     private val onMaps: () -> Unit,
     private val spotifyAvailable: () -> Boolean,
     private val onSpotify: () -> Unit,
+    private val tabs: () -> List<String>,
+    private val onScan: () -> Unit,
+    private val onOpenTab: (String) -> Unit,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private var root: View? = null
@@ -62,8 +67,8 @@ class LockOverlay(
 
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding((32 * dp).toInt(), 0, (32 * dp).toInt(), 0)
+            gravity = Gravity.CENTER
+            setPadding((32 * dp).toInt(), (32 * dp).toInt(), (32 * dp).toInt(), (32 * dp).toInt())
         }
         content.addView(ImageView(context).apply {
             setImageResource(R.drawable.ic_lock)
@@ -90,7 +95,7 @@ class LockOverlay(
         countdown = cd
         content.addView(cd)
         content.addView(TextView(context).apply {
-            text = "ロック中も使えるのは電話・マップ・Spotify だけです"
+            text = "ロック中も使えるのは電話・マップ・Spotify と、QR コードで開いたページだけです"
             textSize = 13f
             setTextColor(Color.parseColor("#99FFFFFF"))
             gravity = Gravity.CENTER
@@ -108,15 +113,37 @@ class LockOverlay(
         addButton("電話（緊急通報）", onPhone)
         addButton("マップ", onMaps)
         if (spotifyAvailable()) addButton("Spotify", onSpotify)
+        addButton("QR コードを読み取る") { onScan() }
+
+        val openedTabs = tabs()
+        if (openedTabs.isNotEmpty()) {
+            content.addView(TextView(context).apply {
+                text = "今日 QR コードで開いたページ"
+                textSize = 13f
+                setTextColor(Color.parseColor("#99FFFFFF"))
+                gravity = Gravity.CENTER
+                setPadding(0, (16 * dp).toInt(), 0, (4 * dp).toInt())
+            })
+            for (url in openedTabs) {
+                val uri = Uri.parse(url)
+                addButton((uri.host.orEmpty() + uri.path.orEmpty()).take(40)) { onOpenTab(url) }
+            }
+        }
 
         return FrameLayout(context).apply {
             setBackgroundColor(Color.parseColor("#FF101418"))
+            // ページが増えても全部押せるようにスクロール可能にする
             addView(
-                content,
+                ScrollView(context).apply {
+                    isFillViewport = true
+                    addView(content, FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                    ))
+                },
                 FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    Gravity.CENTER,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
                 ),
             )
             // 背面へのタッチをすべて吸収する

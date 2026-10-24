@@ -29,3 +29,8 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    // ロック中の QR コード読み取り
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+}

@@ -11,6 +11,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <!-- ロック中に使ってよい電話・マップ・Spotify を探すため -->
     <queries>
@@ -41,6 +47,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ロック中でも使える QR コードリーダーと、読み取ったページの表示画面 -->
+        <activity
+            android:name=".ScanActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity="com.ryucortex.onehourlock.locked" />
+        <activity
+            android:name=".WebTabActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity="com.ryucortex.onehourlock.locked" />
 
         <service
             android:name=".LimitService"
