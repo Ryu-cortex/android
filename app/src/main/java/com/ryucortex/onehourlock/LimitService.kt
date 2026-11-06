@@ -141,14 +141,16 @@ class LimitService : Service() {
                 scheduleTick(MAX_POLL_MS)
                 return
             }
-            val used = UsageTracker.todayScreenTimeMs(this)
-            val remaining = UsageTracker.DAILY_LIMIT_MS - used
+            val usage = UsageTracker.todayUsage(this)
+            val remaining = usage.remainingMs
             if (remaining > 0) {
                 overlay.hide()
-                maybeWarn(dayStart, remaining)
+                // ボーナス中は残り時間が減らないので警告しない
+                if (!usage.bonusActive) maybeWarn(dayStart, remaining)
+                val bonus = UsageTracker.bonusLabel(usage)?.let { " / $it" }.orEmpty()
                 updateStatus(
-                    "今日の使用: ${UsageTracker.formatDuration(used)} / " +
-                        "残り ${UsageTracker.formatDuration(remaining, roundUp = true)}"
+                    "今日の使用: ${UsageTracker.formatDuration(usage.countedMs)} / " +
+                        "残り ${UsageTracker.formatDuration(remaining, roundUp = true)}$bonus"
                 )
                 if (isScreenOn()) scheduleTick(remaining.coerceIn(1_000L, MAX_POLL_MS))
                 return

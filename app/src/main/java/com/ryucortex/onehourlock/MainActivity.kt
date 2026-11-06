@@ -52,7 +52,8 @@ class MainActivity : Activity() {
             setTextColor(Color.BLACK)
         })
         column.addView(TextView(this).apply {
-            text = "1日のスマホ使用時間が1時間を超えると、0:00まで端末を操作できなくなります。"
+            text = "1日のスマホ使用時間が1時間を超えると、0:00まで端末を操作できなくなります。\n" +
+                "夜（22:00〜6:00）に使わなかった日は、朝6:00〜9:00の最初の30分がノーカウントになります。"
             textSize = 14f
             setPadding(0, (8 * dp).toInt(), 0, (24 * dp).toInt())
         })
@@ -104,11 +105,12 @@ class MainActivity : Activity() {
     private fun refresh() {
         val hasUsage = UsageTracker.hasUsageAccess(this)
         if (hasUsage) {
-            val used = UsageTracker.todayScreenTimeMs(this)
-            val remaining = UsageTracker.DAILY_LIMIT_MS - used
-            usageText.text = "今日の使用: ${UsageTracker.formatDuration(used)}\n" +
-                if (remaining > 0) "残り ${UsageTracker.formatDuration(remaining, roundUp = true)}" else "上限に達しました"
-            progress.progress = (used / 60_000L).toInt().coerceAtMost(60)
+            val usage = UsageTracker.todayUsage(this)
+            val remaining = usage.remainingMs
+            usageText.text = "今日の使用: ${UsageTracker.formatDuration(usage.countedMs)}\n" +
+                (if (remaining > 0) "残り ${UsageTracker.formatDuration(remaining, roundUp = true)}" else "上限に達しました") +
+                UsageTracker.bonusLabel(usage)?.let { "\n$it" }.orEmpty()
+            progress.progress = (usage.countedMs / 60_000L).toInt().coerceAtMost(60)
         } else {
             usageText.text = "使用状況へのアクセスを許可してください"
             progress.progress = 0
