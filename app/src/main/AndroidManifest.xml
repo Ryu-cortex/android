@@ -18,8 +18,13 @@
         android:name="android.hardware.camera"
         android:required="false" />
 
-    <!-- ロック中に使ってよい電話・マップ・Spotify を探すため -->
+    <!-- ロック中に使ってよい電話・マップ・Spotify・NAVITIME を探すため -->
     <queries>
+        <!-- NAVITIME 系アプリ（com.navitime.*）をホーム画面のアプリ一覧から探す -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.spotify.music" />
         <intent>

@@ -9,13 +9,16 @@ import android.net.Uri
 import android.telecom.TelecomManager
 
 /**
- * ロック中でも使ってよいアプリ（電話・マップ・Spotify・QRで開いたページ）の判定と、前面アプリの検出。
+ * ロック中でも使ってよいアプリ（電話・マップ・Spotify・NAVITIME・QRで開いたページ）の判定と、前面アプリの検出。
  */
 class AllowedApps(private val context: Context) {
 
     companion object {
         const val GOOGLE_MAPS = "com.google.android.apps.maps"
         const val SPOTIFY = "com.spotify.music"
+
+        /** NAVITIME・乗換NAVITIME・カーナビタイムなど NAVITIME JAPAN のアプリはすべてこの名前で始まる */
+        const val NAVITIME_PREFIX = "com.navitime."
 
         /** アプリ起動時や権限ダイアログなどで一瞬前面に出るシステム画面 */
         private val SYSTEM_HELPERS = setOf(
@@ -67,6 +70,22 @@ class AllowedApps(private val context: Context) {
     fun spotifyIntent(): Intent? =
         pm.getLaunchIntentForPackage(SPOTIFY)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
+    /** インストールされている NAVITIME 系アプリ（表示名と起動 Intent） */
+    fun navitimeApps(): List<Pair<String, Intent>> {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return pm.queryIntentActivities(launcher, 0)
+            .map { it.activityInfo }
+            .filter { it.packageName.startsWith(NAVITIME_PREFIX) }
+            .distinctBy { it.packageName }
+            .mapNotNull { info ->
+                pm.getLaunchIntentForPackage(info.packageName)?.let { intent ->
+                    info.applicationInfo.loadLabel(pm).toString() to
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            }
+            .sortedBy { it.first }
+    }
+
     /**
      * 直近で前面に来たアプリのパッケージ名と、その時刻を返す。
      * 前回問い合わせ以降のイベントだけを読むので毎秒呼んでも軽い。
@@ -86,11 +105,11 @@ class AllowedApps(private val context: Context) {
         return lastForeground
     }
 
-    /** [packages] で得た一覧に入っているアプリか、このアプリの QR/ページ表示画面なら true */
+    /** [packages] で得た一覧か NAVITIME 系のアプリか、このアプリの QR/ページ表示画面なら true */
     fun isAllowed(fg: Foreground, allowedPackages: Set<String>): Boolean {
         val pkg = fg.packageName ?: return false
         if (pkg == context.packageName) return fg.className in ownAllowedClasses
-        return pkg in allowedPackages
+        return pkg in allowedPackages || pkg.startsWith(NAVITIME_PREFIX)
     }
 
     fun scanIntent(): Intent =

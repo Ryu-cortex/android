@@ -2,6 +2,7 @@ package com.ryucortex.onehourlock
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.net.Uri
@@ -25,6 +26,9 @@ class LockOverlay(
     private val onMaps: () -> Unit,
     private val spotifyAvailable: () -> Boolean,
     private val onSpotify: () -> Unit,
+    /** NAVITIME など、インストールされていればボタンを出すアプリ（表示名と起動 Intent） */
+    private val extraApps: () -> List<Pair<String, Intent>>,
+    private val onOpenApp: (Intent) -> Unit,
     private val tabs: () -> List<String>,
     private val onScan: () -> Unit,
     private val onOpenTab: (String) -> Unit,
@@ -95,7 +99,7 @@ class LockOverlay(
         countdown = cd
         content.addView(cd)
         content.addView(TextView(context).apply {
-            text = "ロック中も使えるのは電話・マップ・Spotify と、QR コードで開いたページだけです"
+            text = "ロック中も使えるのは電話・マップ・Spotify・NAVITIME と、QR コードで開いたページだけです"
             textSize = 13f
             setTextColor(Color.parseColor("#99FFFFFF"))
             gravity = Gravity.CENTER
@@ -113,6 +117,7 @@ class LockOverlay(
         addButton("電話（緊急通報）", onPhone)
         addButton("マップ", onMaps)
         if (spotifyAvailable()) addButton("Spotify", onSpotify)
+        for ((label, intent) in extraApps()) addButton(label) { onOpenApp(intent) }
         addButton("QR コードを読み取る") { onScan() }
 
         val openedTabs = tabs()

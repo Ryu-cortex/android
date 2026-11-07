@@ -88,6 +88,8 @@ class LimitService : Service() {
             onMaps = { openAllowedApp(allowedApps.mapsIntent()) },
             spotifyAvailable = { allowedApps.spotifyIntent() != null },
             onSpotify = { allowedApps.spotifyIntent()?.let { openAllowedApp(it) } },
+            extraApps = { allowedApps.navitimeApps() },
+            onOpenApp = { intent -> openAllowedApp(intent) },
             tabs = { ScannedTabs.list(this) },
             onScan = { openAllowedApp(allowedApps.scanIntent()) },
             onOpenTab = { url -> openAllowedApp(allowedApps.webTabIntent(url)) },
@@ -169,7 +171,7 @@ class LimitService : Service() {
             overlay.hide()
             return
         }
-        // 電話・マップ・Spotify・QRで開いたページを使っている間だけロック画面を外す。それ以外のアプリに移ったら即ロック
+        // 電話・マップ・Spotify・NAVITIME・QRで開いたページを使っている間だけロック画面を外す。それ以外のアプリに移ったら即ロック
         allowedSessionStartedAt?.let { startedAt ->
             val fg = allowedApps.foreground(now)
             val allowed = allowedApps.isAllowed(fg, allowedPackages)
