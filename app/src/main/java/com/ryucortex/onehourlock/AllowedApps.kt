@@ -19,6 +19,7 @@ class AllowedApps(private val context: Context) {
 
         /** NAVITIME・乗換NAVITIME・カーナビタイムなど NAVITIME JAPAN のアプリはすべてこの名前で始まる */
         const val NAVITIME_PREFIX = "com.navitime."
+        const val NAVITIME_WEB = "https://www.navitime.co.jp/"
 
         /** アプリ起動時や権限ダイアログなどで一瞬前面に出るシステム画面 */
         private val SYSTEM_HELPERS = setOf(
@@ -114,6 +115,10 @@ class AllowedApps(private val context: Context) {
 
     fun scanIntent(): Intent =
         Intent(context, ScanActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** NAVITIME の Web サイト（この URL より下のページだけ見られる） */
+    fun navitimeWebIntent(): Intent =
+        WebTabActivity.strictIntent(context, NAVITIME_WEB).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     fun webTabIntent(url: String): Intent =
         WebTabActivity.intent(context, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

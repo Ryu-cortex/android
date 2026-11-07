@@ -31,6 +31,7 @@ class LockOverlay(
     private val onOpenApp: (Intent) -> Unit,
     private val tabs: () -> List<String>,
     private val onScan: () -> Unit,
+    private val onNavitimeWeb: () -> Unit,
     private val onOpenTab: (String) -> Unit,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
@@ -118,6 +119,7 @@ class LockOverlay(
         addButton("マップ", onMaps)
         if (spotifyAvailable()) addButton("Spotify", onSpotify)
         for ((label, intent) in extraApps()) addButton(label) { onOpenApp(intent) }
+        addButton("NAVITIME（Webサイト）") { onNavitimeWeb() }
         addButton("QR コードを読み取る") { onScan() }
 
         val openedTabs = tabs()

@@ -92,6 +92,7 @@ class LimitService : Service() {
             onOpenApp = { intent -> openAllowedApp(intent) },
             tabs = { ScannedTabs.list(this) },
             onScan = { openAllowedApp(allowedApps.scanIntent()) },
+            onNavitimeWeb = { openAllowedApp(allowedApps.navitimeWebIntent()) },
             onOpenTab = { url -> openAllowedApp(allowedApps.webTabIntent(url)) },
         )
 
